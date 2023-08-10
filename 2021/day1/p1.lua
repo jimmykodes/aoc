@@ -6,16 +6,16 @@ if (f == nil) then
 end
 
 local last = 0
-local Count = -1
+local count = -1
 for line in f:lines() do
   local current = tonumber(line)
   if (current == nil) then
     return
   elseif (current > last)
   then
-    Count = Count + 1
+    count = count + 1
   end
   last = current
 end
 
-print(Count)
+print(count)

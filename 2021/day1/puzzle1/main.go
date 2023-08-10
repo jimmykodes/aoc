@@ -1,13 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 func main() {
+	start := time.Now()
+	attempt1()
+	fmt.Println("attempt1 completed in", time.Since(start))
+	start = time.Now()
+	attempt2()
+	fmt.Println("attempt2 completed in", time.Since(start))
+}
+
+func attempt1() {
 	data, err := os.ReadFile("input.txt")
 	if err != nil {
 		panic(err)
@@ -26,6 +37,25 @@ func main() {
 			last = current
 			continue
 		}
+		if current > last {
+			count++
+		}
+		last = current
+	}
+	fmt.Println(count)
+}
+
+func attempt2() {
+	f, err := os.Open("input.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	last := 0
+	count := -1
+	for scanner.Scan() {
+		current, _ := strconv.Atoi(scanner.Text())
 		if current > last {
 			count++
 		}
