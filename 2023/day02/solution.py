@@ -59,5 +59,17 @@ def p1(games: List[Game]):
     return total
 
 
+def p2(games: List[Game]):
+    total = 0
+    for game in games:
+        red, blue, green = 0, 0, 0
+        for round in game.rounds:
+            red = max(red, round.groups.get("red", 0))
+            green = max(green, round.groups.get("green", 0))
+            blue = max(blue, round.groups.get("blue", 0))
+        total += red * blue * green
+    return total
+
+
 l = lines("assets/input.txt")
-print(p1(l))
+print(p2(l))
