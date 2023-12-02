@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 from dataclasses import dataclass
 
 
@@ -10,7 +10,7 @@ class Group:
 
 @dataclass
 class Round:
-    groups: List[Group]
+    groups: Dict[str, int]
 
 
 @dataclass
@@ -31,10 +31,33 @@ def lines(file: str) -> List[Game]:
             for round in rounds:
                 groups = round.split(", ")
                 groups = [group.split(" ") for group in groups]
-                groups = [Group(int(g[0]), g[1]) for g in groups]
+                groups = {g[1]: int(g[0]) for g in groups}
                 game.rounds.append(Round(groups))
             games.append(game)
     return games
 
 
-print(lines("assets/test.txt"))
+def p1(games: List[Game]):
+    total = 0
+    max_red = 12
+    max_green = 13
+    max_blue = 14
+    for game in games:
+        possible = True
+        for round in game.rounds:
+            if round.groups.get("red", 0) > max_red:
+                possible = False
+                break
+            if round.groups.get("blue", 0) > max_blue:
+                possible = False
+                break
+            if round.groups.get("green", 0) > max_green:
+                possible = False
+                break
+        if possible:
+            total += game.id
+    return total
+
+
+l = lines("assets/input.txt")
+print(p1(l))
