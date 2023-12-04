@@ -1,3 +1,4 @@
+from datetime import datetime
 from dataclasses import dataclass
 from typing import List
 
@@ -27,9 +28,9 @@ def p1(cards: List[Card]) -> int:
 
 
 def p2(cards: List[Card]) -> int:
-    total = 0
-    for c in cards[::-1]:
-        total += wins(c, cards) + 1
+    total = len(cards)
+    for c in cards:
+        total += wins(c, cards)
     return total
 
 
@@ -38,9 +39,7 @@ def cached(func):
 
     def wrapper(card: Card, cards: List[Card]):
         if card.id in cache:
-            print(f"cache hit: {card.id}")
             return cache[card.id]
-        print(f"cache miss: {card.id}")
         res = func(card, cards)
         cache[card.id] = res
         return res
@@ -58,4 +57,8 @@ def wins(card: Card, cards: List[Card]):
     return total
 
 
-print(p2(cards("assets/input.txt")))
+c = cards("assets/input.txt")
+start = datetime.now()
+for x in range(10_000):
+    p2(c)
+print((datetime.now() - start).total_seconds())
