@@ -9,24 +9,28 @@ import (
 )
 
 func main() {
-	data, err := os.ReadFile("input.txt")
+	data, err := os.ReadFile("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}
 	rows := bytes.Split(data, []byte("\n"))
+	rows = rows[:len(rows)-1]
 	var (
+		aim      int
 		depth    int
 		position int
 	)
 	for _, row := range rows {
 		dir, mag := splitRow(row)
+		// fmt.Println("aim:", aim, "depth:", depth, "position", position, "dir:", dir, "mag:", mag)
 		switch dir {
 		case "forward":
+			depth += aim * mag
 			position += mag
 		case "up":
-			depth -= mag
+			aim -= mag
 		case "down":
-			depth += mag
+			aim += mag
 		}
 	}
 	fmt.Println("depth:", depth, "position:", position)

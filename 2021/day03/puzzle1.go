@@ -8,7 +8,7 @@ import (
 )
 
 func p1() {
-	data, err := os.ReadFile("input.txt")
+	data, err := os.ReadFile("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}

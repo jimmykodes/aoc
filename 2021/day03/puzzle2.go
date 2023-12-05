@@ -27,7 +27,7 @@ func mcb(rows []int64, bp int) bool {
 }
 
 func getRows() []int64 {
-	data, err := os.ReadFile("./real.txt")
+	data, err := os.ReadFile("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}

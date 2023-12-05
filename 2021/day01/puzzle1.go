@@ -19,7 +19,7 @@ func main() {
 }
 
 func attempt1() {
-	data, err := os.ReadFile("input.txt")
+	data, err := os.ReadFile("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -29,6 +29,9 @@ func attempt1() {
 		count int
 	)
 	for i, row := range rows {
+		if len(row) == 0 {
+			continue
+		}
 		current, err := strconv.Atoi(string(row))
 		if err != nil {
 			panic(err)
@@ -46,7 +49,7 @@ func attempt1() {
 }
 
 func attempt2() {
-	f, err := os.Open("input.txt")
+	f, err := os.Open("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}

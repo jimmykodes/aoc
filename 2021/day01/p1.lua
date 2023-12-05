@@ -1,4 +1,4 @@
-local f = io.open("./puzzle1/input.txt", "r")
+local f = io.open("assets/input.txt", "r")
 
 if (f == nil) then
   print("nil file")

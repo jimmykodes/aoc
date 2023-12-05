@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	data, err := os.ReadFile("input.txt")
+	data, err := os.ReadFile("assets/input.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,11 @@ func main() {
 func sum(inputs ...[]byte) int {
 	var s int
 	for _, b := range inputs {
-		i, err := strconv.Atoi(string(b))
+		str := string(b)
+		if str == "" {
+			continue
+		}
+		i, err := strconv.Atoi(str)
 		if err != nil {
 			panic(err)
 		}
