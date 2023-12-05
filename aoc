@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+day() {
+  local y
+  local d
+  y=$1
+  d=$2
+  local fp="$y/day$d"
+  mkdir -p "$fp/assets"
+  touch "$fp/assets/input.txt"
+  touch "$fp/assets/test.txt"
+  echo $fp
+}
+
+today() {
+  local y
+  local m
+  local d
+  y=$(date +"%Y")
+  m=$(date +"%m")
+  d=$(date +"%d")
+  if [[ $m != 12 ]]; then
+    echo "today can only be used during December"
+    exit 1
+  fi
+  day $y $d
+}
+
+usage() {
+  echo "./aoc [command]"
+  echo 
+  echo "[Commands]"
+  echo "today (t): cd into today's puzzle dir, create it if it doesn't exist"
+}
+
+main() {
+  case $1 in
+    today | t )
+      today
+      ;;
+    day | d )
+      shift
+      day "$@"
+      ;;
+    * )
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
