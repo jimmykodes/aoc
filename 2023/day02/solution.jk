@@ -1,0 +1,109 @@
+# Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+# Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+# Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+# Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+# Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+
+fn find(needle, haystack) {
+  for i := 0; i < len(haystack); i = i + 1; {
+    if haystack[i] == needle {
+      return i;
+    }
+  };
+  return -1;
+}
+
+fn trim(str) {
+  while str[0] == " " {
+    str = slice(str, 1, len(str));
+  }
+  return str;
+}
+
+fn split_on(str, elem) {
+  out := [];
+  idx := 0;
+
+  while !!str {
+    str = trim(str);
+    idx = find(elem, str);
+    if idx == -1 {
+      out = append(out, str);
+      str = "";
+    } else {
+      out = append(out, slice(str, idx));
+      str = slice(str, idx+1, len(str));
+    }
+  };
+
+  return out;
+}
+
+fn map(elems, func) {
+  for i := 0; i < len(elems); i = i + 1; {
+    set(elems, i, func(elems[i]))
+  }
+  return elems
+}
+
+fn load() {
+  f := open("assets/input.txt");
+  line := readline(f);
+  out := [];
+  while !!line {
+    s := split_on(line, ":");
+    game := s[0];
+    rounds := map(split_on(s[1], ";"), trim);
+
+    for i := 0; i < len(rounds); i = i + 1; {
+      round := rounds[i];
+      colors := map(split_on(round, ","), trim);
+
+      parsed := {"red": 0, "blue": 0, "green": 0};
+
+      for j := 0; j < len(colors); j = j + 1; {
+        c := split_on(colors[j], " ");
+        set(parsed, c[1], int(c[0]));
+      }
+
+      set(rounds, i, parsed);
+    }
+    out = append(out, rounds);
+
+    line = readline(f);
+  }
+  return out
+}
+
+fn main() {
+  games := load();
+  total := 0;
+  max_red := 12;
+  max_green := 13;
+  max_blue := 14;
+  for g := 0; g < len(games); g = g + 1; {
+    game := games[g];
+    possible := true;
+    for r := 0; r < len(game); r = r + 1; {
+      round := game[r];
+      if round["green"] > max_green {
+        possible = false;
+        break;
+      }
+      if round["blue"] > max_blue {
+        possible = false;
+        break;
+      }
+      if round["red"] > max_red {
+        possible = false;
+        break;
+      }
+    }
+    if possible {
+      total = total + g + 1;
+    }
+  }
+  print(total);
+}
+
+main();
