@@ -15,21 +15,21 @@ func main() {
 
 func p2(lines []*Line) int64 {
 	var polygon []Coord
-	var maxX, minX, maxY, minY int
+	var lineArea int64
 	for _, line := range lines {
-		start := line.ColorStart
-		maxX = max(maxX, start.X)
-		minX = min(minX, start.X)
-		maxY = max(maxY, start.Y)
-		minY = min(minY, start.Y)
-		polygon = append(polygon, start)
+		polygon = append(polygon, line.ColorStart)
+		lineArea += line.ColorLen
 	}
-	return calculatePolygonArea(polygon)
+	// I don't really understand how we get the off by one. I understand that the area
+	// calculation doesn't take into account the actual permiter values, but I don't
+	// really get why I have do divide the line area in half and add one.
+	return calculatePolygonArea(polygon) + (lineArea / 2) + 1
 }
 
 func p1(lines []*Line) int {
 	var polygon []Coord
 	var maxX, minX, maxY, minY int
+	var lineArea int
 	for _, line := range lines {
 		start := line.Start
 		maxX = max(maxX, start.X)
@@ -37,10 +37,11 @@ func p1(lines []*Line) int {
 		maxY = max(maxY, start.Y)
 		minY = min(minY, start.Y)
 		polygon = append(polygon, start)
+		lineArea += line.Len
 	}
 	ic := insideCount(minY, maxY, minX, maxX, polygon)
 	cpa := calculatePolygonArea(polygon)
-	fmt.Println(ic, cpa)
+	fmt.Println(ic, cpa+int64(lineArea/2)+1)
 	return ic
 }
 
@@ -162,7 +163,7 @@ var dirs = [...]Direction{
 	'0': Right,
 	'1': Down,
 	'2': Left,
-	'3': Right,
+	'3': Up,
 }
 
 type Coord struct {
