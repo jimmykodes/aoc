@@ -11,6 +11,7 @@ import (
 func main() {
 	p := puzzle("assets/input.txt")
 	p1(p)
+	p2(p)
 }
 
 func puzzle(filename string) []int {
@@ -29,11 +30,13 @@ func puzzle(filename string) []int {
 	return out
 }
 
-func mutate(i int) (int, int) {
-	if i == 0 {
-		return 1, -1
+var seen = map[[2]int]int{}
+
+func mutate(stone int) []int {
+	if stone == 0 {
+		return []int{1}
 	}
-	if s := strconv.Itoa(i); len(s)%2 == 0 {
+	if s := strconv.Itoa(stone); len(s)%2 == 0 {
 		h := len(s) / 2
 		s1, s2 := s[:h], s[h:]
 		i1, err := strconv.Atoi(s1)
@@ -44,21 +47,55 @@ func mutate(i int) (int, int) {
 		if err != nil {
 			panic(err)
 		}
-		return i1, i2
+		return []int{i1, i2}
 	}
-	return i * 2024, -1
+	return []int{stone * 2024}
 }
 
-func p1(p []int) {
+func count(stone, generations int) int {
+	if generations == 0 {
+		return 1
+	}
+	cacheKey := [2]int{stone, generations}
+	if c, ok := seen[cacheKey]; ok {
+		return c
+	}
+	var c int
+	for _, s := range mutate(stone) {
+		c += count(s, generations-1)
+	}
+	seen[cacheKey] = c
+	return c
+}
+
+// _p1 is my initial, stupid, brute force attempt
+func _p1(p []int) {
 	puzzle := slices.Clone(p)
 	for range 25 {
 		for i := len(puzzle) - 1; i >= 0; i-- {
-			s1, s2 := mutate(puzzle[i])
-			puzzle[i] = s1
-			if s2 != -1 {
-				puzzle = slices.Insert(puzzle, i+1, s2)
+			vals := mutate(puzzle[i])
+			puzzle[i] = vals[0]
+			if len(vals) > 1 {
+				puzzle = slices.Insert(puzzle, i+1, vals[1])
 			}
 		}
 	}
 	fmt.Println(len(puzzle))
+}
+
+func solve(p []int, gens int) int {
+	puzzle := slices.Clone(p)
+	var total int
+	for _, stone := range puzzle {
+		total += count(stone, gens)
+	}
+	return total
+}
+
+func p1(p []int) {
+	fmt.Println(solve(p, 25))
+}
+
+func p2(p []int) {
+	fmt.Println(solve(p, 75))
 }
