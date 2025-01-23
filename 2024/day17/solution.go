@@ -18,19 +18,23 @@ func main() {
 		panic(err)
 	}
 
-	i := int(math.Pow10(len(m.Instructions) - 2))
+	m.A = 0o4354337671237000
+	incr := 0o1
+	// for j := 0; j < 10; j++ {
 	for {
-		i++
-		m.A = i
+		// i++
 		out := m.Run()
-		if len(out) > len(m.Instructions) {
-			fmt.Println("A too high, instructions too long")
-			return
-		}
+		// if len(out) > len(m.Instructions) {
+		// 	fmt.Println("A too high, instructions too long")
+		// 	return
+		// }
+		//
+		fmt.Printf("%o, %v, %d, %s\n", m.A, out, len(out), "2414754114550330")
 		if slices.Equal(out, m.Instructions) {
-			fmt.Println(i)
+			fmt.Println(m.A)
 			return
 		}
+		m.A += incr
 	}
 }
 
