@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-var fname = "assets/test.txt"
+var fname = "assets/input.txt"
 
 func main() {
 	fmt.Println("p1")
@@ -32,6 +32,8 @@ func P1(fname string) {
 		}
 	}
 
+	squares = slices.Clip(squares)
+
 	slices.SortStableFunc(squares, func(a, b Square) int {
 		aDist := a.Area()
 		bDist := b.Area()
@@ -51,13 +53,13 @@ func P1(fname string) {
 
 func P2(fname string) {
 	tiles := parse(fname)
-	var polygon [][2]*Tile
+	var polygon []Line
 	for i := 1; i < len(tiles); i++ {
-		polygon = append(polygon, [2]*Tile{tiles[i-1], tiles[i]})
+		polygon = append(polygon, Line{tiles[i-1], tiles[i]})
 	}
 
 	// wrap
-	polygon = append(polygon, [2]*Tile{tiles[len(tiles)-1], tiles[0]})
+	polygon = append(polygon, [2]*Coord{tiles[len(tiles)-1], tiles[0]})
 
 	squares := make([]Square, 0, len(tiles)*len(tiles))
 	for i, tile := range tiles {
@@ -68,6 +70,10 @@ func P2(fname string) {
 			squares = append(squares, Square{tile, otherTile})
 		}
 	}
+
+	squares = slices.Clip(squares)
+
+	// squares := []Square{{&Coord{9, 5}, &Coord{2, 3}}}
 
 	slices.SortStableFunc(squares, func(a, b Square) int {
 		aDist := a.Area()
@@ -81,169 +87,147 @@ func P2(fname string) {
 			return 0
 		}
 	})
-SQUARES:
+
 	for _, square := range squares {
-		for _, line := range square.Lines() {
-			for _, boundary := range polygon {
-				if intersect(line, boundary) {
-					// if we intersect any polygon line, we can't be inside it.
-					continue SQUARES
-				}
-			}
+		if square.InPolygon(polygon) {
+			fmt.Println(square, square.Area())
+			return
 		}
-		fmt.Printf("square: %v does not intersect polygon\n", square)
-
-		// not intersecting a line could still mean we are full outside the polygon
-		// rather than fully inside it.
-		midpoint := square.Midpoint()
-		rays := [][2]*Tile{
-			{&Tile{0, midpoint.Y}, midpoint},
-			{midpoint, &Tile{math.MaxInt, midpoint.Y}},
-			{&Tile{midpoint.X, 0}, midpoint},
-			{midpoint, &Tile{midpoint.X, math.MaxInt}},
-		}
-		for _, ray := range rays {
-			count := 0
-			for _, boundary := range polygon {
-				if intersect(ray, boundary) {
-					count++
-				}
-			}
-			if count%2 == 0 {
-				fmt.Printf("square: %v: ray %v count %v\n", square, ray, count)
-				continue SQUARES
-			}
-		}
-		// if we tested every ray, and they were all odd intersections,
-		// we are fully inside the polygon... right?
-		fmt.Printf("%v square.Area(): %v\n", square, square.Area())
-		for _, ray := range rays {
-			count := 0
-			for _, boundary := range polygon {
-				if intersect(ray, boundary) {
-					count++
-				}
-			}
-			fmt.Printf("square: %v: ray %v count %v\n", square, ray, count)
-		}
-		return
 	}
 }
 
-func intersect(line1, line2 [2]*Tile) bool {
-	p1, q1 := line1[0], line1[1]
-	p2, q2 := line2[0], line2[1]
+type (
+	Line   [2]*Coord
+	Square [2]*Coord
+)
 
-	// Calculate direction vectors
-	d1 := Tile{X: q1.X - p1.X, Y: q1.Y - p1.Y}
-	d2 := Tile{X: q2.X - p2.X, Y: q2.Y - p2.Y}
-
-	// Calculate determinant (cross product of direction vectors)
-	det := d1.X*d2.Y - d1.Y*d2.X
-
-	// Lines are parallel if determinant is 0
-	if det == 0 {
-		return false
+func (s Square) InPolygon(polygon []Line) bool {
+	for _, point := range s.Points() {
+		if !point.InPolygon(polygon) {
+			return false
+		}
 	}
-
-	// Calculate difference vector from p1 to p2
-	dp := Tile{X: p2.X - p1.X, Y: p2.Y - p1.Y}
-
-	// Calculate parameters t and u using Cramer's rule
-	// t is parameter for line1: p1 + t*d1
-	// u is parameter for line2: p2 + u*d2
-	t := float64(dp.X*d2.Y-dp.Y*d2.X) / float64(det)
-	u := float64(dp.X*d1.Y-dp.Y*d1.X) / float64(det)
-
-	// Lines intersect if both parameters are strictly between 0 and 1
-	// Using strict inequality excludes endpoint intersections (T-junctions)
-	return t > 0 && t < 1 && u > 0 && u < 1
+	for _, line := range s.Lines() {
+		for _, boundary := range polygon {
+			if intersection := line.Intersection(boundary); intersection != nil {
+				// lines are orthoganal
+				if line.PointOnSegment(intersection) && boundary.PointOnSegment(intersection) {
+					// lines cross
+					return false
+				}
+				// lines don't cross, look at next boundary
+				continue
+			} else {
+				// lines are parallel
+				if line.FullyContains(boundary) {
+					// lines are colinear
+					if line[0].Eq(boundary[0]) {
+						// start points match. check next boundary
+						continue
+					}
+					if line[1].Eq(boundary[0]) {
+						// line end matches boundary start
+						// due to directionality, we can say
+						// this means the line stays "inside"
+						continue
+					}
+					return false
+				} else {
+					// lines are independent, look at next boundary
+					continue
+				}
+			}
+		}
+	}
+	return true
 }
 
-func _intersect(line1, line2 [2]*Tile) bool {
-	p1, q1 := line1[0], line1[1]
-	p2, q2 := line2[0], line2[1]
-
-	// Helper function to find orientation of ordered triplet (p, q, r)
-	// Returns:
-	// 0 -> p, q and r are colinear
-	// 1 -> Clockwise
-	// 2 -> Counterclockwise
-	orientation := func(p, q, r *Tile) int {
-		val := (q.Y-p.Y)*(r.X-q.X) - (q.X-p.X)*(r.Y-q.Y)
-		if val == 0 {
-			return 0 // colinear
-		}
-		if val > 0 {
-			return 1 // clockwise
-		}
-		return 2 // counterclockwise
-	}
-
-	// Check if point q lies on segment pr
-	onSegment := func(p, q, r *Tile) bool {
-		return q.X <= max(p.X, r.X) && q.X >= min(p.X, r.X) &&
-			q.Y <= max(p.Y, r.Y) && q.Y >= min(p.Y, r.Y)
-	}
-
-	o1 := orientation(p1, q1, p2)
-	o2 := orientation(p1, q1, q2)
-	o3 := orientation(p2, q2, p1)
-	o4 := orientation(p2, q2, q1)
-
-	// Special cases - we return false for these since they don't count as "crossing"
-	// according to your requirements (no T intersections or full overlaps)
-
-	// p1, q1 and p2 are colinear and p2 lies on segment p1q1
-	if o1 == 0 && onSegment(p1, p2, q1) {
-		return false
-	}
-
-	// p1, q1 and q2 are colinear and q2 lies on segment p1q1
-	if o2 == 0 && onSegment(p1, q2, q1) {
-		return false
-	}
-
-	// p2, q2 and p1 are colinear and p1 lies on segment p2q2
-	if o3 == 0 && onSegment(p2, p1, q2) {
-		return false
-	}
-
-	// p2, q2 and q1 are colinear and q1 lies on segment p2q2
-	if o4 == 0 && onSegment(p2, q1, q2) {
-		return false
-	}
-
-	// General case - proper intersection
-	if o1 != o2 && o3 != o4 {
-		return true
-	}
-
-	return false
+func (l Line) IsVertical() bool {
+	return l[0].X == l[1].X
 }
 
-type Square [2]*Tile
+func (l Line) IsHorizontal() bool {
+	return l[0].Y == l[1].Y
+}
 
-func (e Square) Area() int {
-	xDist := e[0].X - e[1].X
+func (l Line) Intersection(other Line) *Coord {
+	if l.IsHorizontal() && other.IsHorizontal() || l.IsVertical() && other.IsVertical() {
+		// lines are parallel, no Intersection
+		// or, technically, complete intersection if they
+		// overlap, but that has no real bearing here
+		return nil
+	}
+	if l.IsHorizontal() {
+		return &Coord{other[0].X, l[0].Y}
+	}
+	return &Coord{l[0].X, other[0].Y}
+}
+
+func (l Line) maxX() int {
+	return max(l[0].X, l[1].X)
+}
+
+func (l Line) maxY() int {
+	return max(l[0].Y, l[1].Y)
+}
+
+func (l Line) minX() int {
+	return min(l[0].X, l[1].X)
+}
+
+func (l Line) minY() int {
+	return min(l[0].Y, l[1].Y)
+}
+
+func (l Line) FullyContains(other Line) bool {
+	if l.IsHorizontal() && other.IsHorizontal() {
+		return l[0].Y == other[0].Y && l.minX() <= other.minX() && other.maxX() <= l.maxX()
+	}
+	return l[0].X == other[0].X && l.minY() <= other.minY() && other.maxY() <= l.maxY()
+}
+
+func (l Line) PointOnSegment(c *Coord) bool {
+	if c == nil {
+		return false
+	}
+	if l.IsHorizontal() {
+		return min(l[0].X, l[1].X) < c.X &&
+			c.X < max(l[0].X, l[1].X)
+	}
+	return min(l[0].Y, l[1].Y) < c.Y &&
+		c.Y < max(l[0].Y, l[1].Y)
+}
+
+func (s Square) Points() [4]*Coord {
+	p1 := s[0]
+	p3 := s[1]
+	p2 := &Coord{p3.X, p1.Y}
+	p4 := &Coord{p1.X, p3.Y}
+
+	return [4]*Coord{p1, p2, p3, p4}
+}
+
+func (s Square) Area() int {
+	xDist := s[0].X - s[1].X
 	if xDist < 0 {
 		xDist = -xDist
 	}
 
-	yDist := e[0].Y - e[1].Y
+	yDist := s[0].Y - s[1].Y
 	if yDist < 0 {
 		yDist = -yDist
 	}
 	return (xDist + 1) * (yDist + 1)
 }
 
-func (e Square) Lines() [4][2]*Tile {
-	p1 := e[0]
-	p3 := e[1]
-	p2 := &Tile{p1.X, p3.Y}
-	p4 := &Tile{p3.X, p1.Y}
+func (s Square) Lines() [4]Line {
+	coords := s.Points()
+	p1 := coords[0]
+	p2 := coords[1]
+	p3 := coords[2]
+	p4 := coords[3]
 
-	return [4][2]*Tile{
+	return [4]Line{
 		{p1, p2},
 		{p2, p3},
 		{p3, p4},
@@ -251,44 +235,76 @@ func (e Square) Lines() [4][2]*Tile {
 	}
 }
 
-func (e Square) Midpoint() *Tile {
-	x := (e[0].X + e[1].X) / 2
-	y := (e[0].Y + e[1].Y) / 2
-	return &Tile{x, y}
+func (s Square) Midpoint() *Coord {
+	x := (s[0].X + s[1].X) / 2
+	y := (s[0].Y + s[1].Y) / 2
+	return &Coord{x, y}
 }
 
-func (e Square) String() string {
-	return fmt.Sprintf("%s -> %s", e[0], e[1])
+func (s Square) String() string {
+	return fmt.Sprintf("%s -> %s", s[0], s[1])
 }
 
-type Tile struct {
+type Coord struct {
 	X, Y int
 }
 
-func (b Tile) String() string {
-	return fmt.Sprintf("( %d, %d )", b.X, b.Y)
+func (c *Coord) InPolygon(polygon []Line) bool {
+	rays := []Line{
+		{&Coord{0, c.Y}, c},
+		{c, &Coord{math.MaxInt, c.Y}},
+		{&Coord{c.X, 0}, c},
+		{c, &Coord{c.X, math.MaxInt}},
+	}
+	for _, ray := range rays {
+		count := 0
+		for _, boundary := range polygon {
+			if c.Eq(boundary[0]) || c.Eq(boundary[1]) {
+				// a point is in the polygon if it sits at a boundary vertex
+				return true
+			}
+			intersection := ray.Intersection(boundary)
+			if boundary.PointOnSegment(intersection) && ray.PointOnSegment(intersection) {
+				count++
+			} else if intersection == nil && ray.FullyContains(boundary) {
+				count++
+			}
+		}
+		if count%2 == 0 {
+			return false
+		}
+	}
+	return true
 }
 
-func (b *Tile) UnmarshalText(data []byte) error {
+func (c Coord) Eq(other *Coord) bool {
+	return c.X == other.X && c.Y == other.Y
+}
+
+func (c Coord) String() string {
+	return fmt.Sprintf("( %d, %d )", c.X, c.Y)
+}
+
+func (c *Coord) UnmarshalText(data []byte) error {
 	x, y, _ := bytes.Cut(data, []byte{','})
 
 	X, xErr := strconv.Atoi(string(x))
 	Y, yErr := strconv.Atoi(string(y))
 
-	b.X, b.Y = X, Y
+	c.X, c.Y = X, Y
 
 	return errors.Join(xErr, yErr)
 }
 
-func parse(fname string) []*Tile {
+func parse(fname string) []*Coord {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		panic(err)
 	}
 	lines := bytes.Split(bytes.TrimSpace(data), []byte{'\n'})
-	out := make([]*Tile, len(lines))
+	out := make([]*Coord, len(lines))
 	for i, line := range lines {
-		var b Tile
+		var b Coord
 		if err := b.UnmarshalText(line); err != nil {
 			panic(err)
 		}
